@@ -3,6 +3,7 @@ import os
 import base64
 import time
 import streamlit as st
+import fitz  # PyMuPDF
 
 # allow backend imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -26,23 +27,24 @@ mode = st.sidebar.selectbox(
 
 
 # -------------------------------
-# PDF Viewer Function
+# PDF Viewer Function (PNG Rendered)
 # -------------------------------
 def display_pdf(file_path):
-
-    with open(file_path, "rb") as f:
-        base64_pdf = base64.b64encode(f.read()).decode("utf-8")
-
-    pdf_display = f"""
-        <iframe
-        src="data:application/pdf;base64,{base64_pdf}"
-        width="100%"
-        height="750"
-        type="application/pdf">
-        </iframe>
-    """
-
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    try:
+        doc = fitz.open(file_path)
+        num_pages = len(doc)
+        
+        # Page selector widget
+        page_num = st.number_input("Page", min_value=1, max_value=num_pages, value=1, key="pdf_page_selector")
+        
+        # Render the selected page as PNG
+        page = doc[page_num - 1]
+        pix = page.get_pixmap(dpi=150)
+        img_bytes = pix.tobytes("png")
+        
+        st.image(img_bytes, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error rendering PDF: {e}")
 
 
 # -------------------------------
